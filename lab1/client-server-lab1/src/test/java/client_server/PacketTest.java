@@ -2,6 +2,8 @@ package client_server;
 
 import client_server.ciphers.Crc16Checker;
 import client_server.exceptions.IllegalPacketException;
+import client_server.models.MessageObject;
+import client_server.models.Product;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -84,13 +86,13 @@ public class PacketTest {
     }
     @Test
     public void packetReturnsRightMessageObject(){
-        MessageObject expectedMessageObject = new MessageObject("Expected");
+        MessageObject expectedMessageObject = new MessageObject("expected");
         Message message = new Message(0,0, expectedMessageObject);
         byte[] array = createByteArrayWithRightCrc16((byte) 0, 0, message);
 
         Packet packet = new Packet(array);
 
-        assertEquals(expectedMessageObject.getMessage(), packet.getMessage().getMessageObject().getMessage());
+        assertEquals(expectedMessageObject.getMessageString(), packet.getMessage().getMessageObject().getMessageString());
     }
 
 

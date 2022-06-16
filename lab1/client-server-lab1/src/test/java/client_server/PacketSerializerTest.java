@@ -2,13 +2,12 @@ package client_server;
 
 import client_server.ciphers.CipherString;
 import client_server.ciphers.Crc16Checker;
+import client_server.models.MessageObject;
+import client_server.models.Product;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Test;
 
-import javax.crypto.NoSuchPaddingException;
 import java.nio.ByteBuffer;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;

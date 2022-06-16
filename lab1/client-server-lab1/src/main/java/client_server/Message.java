@@ -2,6 +2,7 @@ package client_server;
 
 import client_server.ciphers.CipherString;
 import client_server.exceptions.IllegalPacketException;
+import client_server.models.MessageObject;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.nio.ByteBuffer;
