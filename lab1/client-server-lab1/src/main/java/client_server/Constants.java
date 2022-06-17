@@ -8,7 +8,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class Constants {
-    public static final int NUMBER_OF_THREADS = 5;
+    public static final int NUMBER_OF_THREADS = 15;
     public static final Decryptor DECRYPTOR = new Decryptor();
     public static final Processor PROCESSOR = new Processor();
     public static final Encryptor ENCRYPTOR = new Encryptor();

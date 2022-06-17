@@ -1,5 +1,6 @@
 package client_server;
 
+import client_server.exceptions.DataAccessException;
 import client_server.models.MessageObject;
 import client_server.models.Product;
 import client_server.models.ProductGroup;
@@ -36,75 +37,65 @@ class ProcessorTask implements Runnable {
     public void run() {
         int commandType = message.getMessage().getCommandType();
         Product messageObject = message.getMessage().getMessageObject().getMessage();
-        synchronized (Constants.DATA) {
-            switch (commandType) {
-                case (Constants.COMMAND_ADD_GROUP) -> {
-                    ProductGroup toAdd = new ProductGroup(messageObject.getProductGroupName(), new ArrayList<>());
-                    Constants.DATA.add(toAdd);
-                    sendOkMessage();
-                    break;
-                }
-                case (Constants.COMMAND_ADD_PRODUCT) -> {
-                    ProductGroup toAdd = Constants.DATA.stream().filter(g -> g.getName().equals(messageObject.getProductGroupName())).findFirst().orElse(null);
-                    if (toAdd == null) {
+        try {
+            synchronized (Constants.DATA) {
+                switch (commandType) {
+                    case (Constants.COMMAND_ADD_GROUP) -> {
+                        ProductGroup toAdd = new ProductGroup(messageObject.getProductGroupName(), new ArrayList<>());
+                        Constants.DATA.add(toAdd);
+                        sendOkMessage();
+                        break;
+                    }
+                    case (Constants.COMMAND_ADD_PRODUCT) -> {
+                        ProductGroup toAdd = Constants.DATA.stream().filter(g -> g.getName().equals(messageObject.getProductGroupName())).findFirst().orElse(null);
+                        if (toAdd == null) {
+                            sendErrorMessage();
+                            return;
+                        }
+
+                        toAdd.getProducts().add(messageObject);
+                        sendOkMessage();
+                        break;
+                    }
+                    case (Constants.COMMAND_ADD_PRODUCT_AMOUNT) -> {
+                        Product product = findProduct(messageObject.getName());
+                        throwIfNull(product);
+                        product.setAmount(product.getAmount() + messageObject.getAmount());
+                        sendOkMessage();
+                        break;
+                    }
+                    case (Constants.COMMAND_REMOVE_PRODUCT_AMOUNT) -> {
+                        Product product = findProduct(messageObject.getName());
+                        throwIfNull(product);
+
+                        int amount = product.getAmount() - messageObject.getAmount();
+                        amount = (amount < 0) ? 0 : amount;
+                        product.setAmount(amount);
+                        sendOkMessage();
+                        break;
+                    }
+                    case (Constants.COMMAND_SET_PRICE) -> {
+                        Product product = findProduct(messageObject.getName());
+                        throwIfNull(product);
+                        product.setPrice(messageObject.getPrice());
+                        sendOkMessage();
+                        break;
+                    }
+                    case (Constants.COMMAND_GET_PRODUCT_AMOUNT) -> {
+                        Product product = findProduct(messageObject.getName());
+                        throwIfNull(product);
+                        sendMessage("Amount " + product.getAmount());
+                        break;
+                    }
+                    default -> {
                         sendErrorMessage();
                         return;
                     }
-
-                    toAdd.getProducts().add(messageObject);
-                    sendOkMessage();
-                    break;
-                }
-                case (Constants.COMMAND_ADD_PRODUCT_AMOUNT) -> {
-                    Product product = findProduct(messageObject.getName());
-                    if(product == null) {
-                        sendErrorMessage();
-                        return;
-                    }
-
-                    product.setAmount(product.getAmount() + messageObject.getAmount());
-                    sendOkMessage();
-                    break;
-                }
-                case (Constants.COMMAND_REMOVE_PRODUCT_AMOUNT) -> {
-                    Product product = findProduct(messageObject.getName());
-                    if(product == null) {
-                        sendErrorMessage();
-                        return;
-                    }
-
-                    int amount = product.getAmount() - messageObject.getAmount();
-                    amount = (amount < 0) ? 0 : amount;
-                    product.setAmount(amount);
-                    sendOkMessage();
-                    break;
-                }
-                case (Constants.COMMAND_SET_PRICE) -> {
-                    Product product = findProduct(messageObject.getName());
-                    if(product == null) {
-                        sendErrorMessage();
-                        return;
-                    }
-
-                    product.setPrice(product.getPrice());
-                    sendOkMessage();
-                    break;
-                }
-                case (Constants.COMMAND_GET_PRODUCT_AMOUNT) -> {
-                    Product product = findProduct(messageObject.getName());
-                    if(product == null) {
-                        sendErrorMessage();
-                        return;
-                    }
-
-                    sendMessage("Amount " + product.getAmount());
-                    break;
-                }
-                default -> {
-                    sendErrorMessage();
-                    return;
                 }
             }
+        } catch (DataAccessException ex){
+            sendErrorMessage();
+            return;
         }
     }
 
@@ -123,5 +114,11 @@ class ProcessorTask implements Runnable {
     private void sendMessage(String message){
         Message messageToSend = new Message(this.message.getMessage().getCommandType(), this.message.getMessage().getUserId(), new MessageObject(message));
         Constants.ENCRYPTOR.encrypt(messageToSend, this.message.getSrcId());
+    }
+
+    private void throwIfNull(Product product){
+        if(product == null) {
+            throw new DataAccessException("Error with accessing data");
+        }
     }
 }

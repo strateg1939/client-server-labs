@@ -12,7 +12,6 @@ import java.util.ArrayList;
 public class FakeReceiver implements Receiver {
     private Message message;
     private byte srcId;
-    private ProductGroup productGroup;
 
     public FakeReceiver(){
         this(null, (byte) (Math.random() * Byte.MAX_VALUE));
@@ -21,8 +20,6 @@ public class FakeReceiver implements Receiver {
     public FakeReceiver(Message message, byte srcId) {
         this.message = message;
         this.srcId = srcId;
-        this.productGroup = new ProductGroup("Group " + srcId, new ArrayList<>());
-        Constants.DATA.add(this.productGroup);
     }
 
     @Override

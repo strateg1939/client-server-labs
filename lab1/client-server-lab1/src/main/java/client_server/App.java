@@ -17,10 +17,10 @@ public class App
         Constants.DATA.add(productGroup);
         productGroup.getProducts().add(new Product("new", 50, 0, productGroup.getName()));
 
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 101; i++) {
             Product product = new Product("new", 10, 10, "default");
 
-            Message message = new Message((i % 2 == 1) ? Constants.COMMAND_ADD_PRODUCT_AMOUNT : Constants.COMMAND_REMOVE_PRODUCT_AMOUNT, 1, new MessageObject(product));
+            Message message = new Message((i % 2 == 0) ? Constants.COMMAND_ADD_PRODUCT_AMOUNT : Constants.COMMAND_REMOVE_PRODUCT_AMOUNT, 1, new MessageObject(product));
             Receiver receiver = new FakeReceiver(message, (byte) 0);
             receiver.receiveMessage();
         }
