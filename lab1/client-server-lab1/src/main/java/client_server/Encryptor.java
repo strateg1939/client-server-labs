@@ -3,6 +3,7 @@ package client_server;
 import client_server.network_layer.FakeSender;
 import client_server.network_layer.Sender;
 
+import java.io.IOException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -13,7 +14,7 @@ public class Encryptor {
     }
 
     public void encrypt(Message message, byte srcId) {
-        encryptPool.submit(new EncryptorTask(message, srcId, new FakeSender()));
+        encryptPool.submit(new EncryptorTask(message, srcId, (Constants.SHOULD_USE_FAKE_CONNECTION) ? new FakeSender() : Constants.TCP_SERVER));
     }
 
     public void shutdown(){
@@ -38,6 +39,10 @@ class EncryptorTask implements Runnable {
     public void run() {
         PacketSerializer serializer = new PacketSerializer(this.message, this.srcId);
         System.out.println("Sending message : " + this.message.getMessageObject().getMessageString());
-        sender.sendMessage(serializer.getPacket());
+        try {
+            sender.sendMessage(serializer.getPacket(), srcId);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

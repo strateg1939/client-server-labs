@@ -7,7 +7,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 public class Packet {
-    protected static final byte bMagic = 0x13;
+    public static final byte bMagic = 0x13;
     private static final int PACKAGE_BYTES_LENGTH = 14;
     private byte srcId;
     private long packetId;

@@ -2,6 +2,7 @@ package client_server;
 
 import client_server.models.Product;
 import client_server.models.ProductGroup;
+import client_server.network_layer.StoreServerTCP;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -12,6 +13,7 @@ public class Constants {
     public static final Decryptor DECRYPTOR = new Decryptor();
     public static final Processor PROCESSOR = new Processor();
     public static final Encryptor ENCRYPTOR = new Encryptor();
+    public static final StoreServerTCP TCP_SERVER = new StoreServerTCP();
     public static final List<ProductGroup> DATA = Collections.synchronizedList(new ArrayList<>());
 
 
@@ -21,6 +23,12 @@ public class Constants {
     public static final int COMMAND_ADD_PRODUCT = 4;
     public static final int COMMAND_ADD_GROUP = 5;
     public static final int COMMAND_SET_PRICE = 6;
+
+    public static final int TCP_PORT = 1337;
+    public static final int UDP_PORT = 1338;
+    //for tests
+    public static boolean SHOULD_USE_FAKE_CONNECTION = false;
+
 
     public static boolean anyThreadsActive() {
         return DECRYPTOR.isActive() || PROCESSOR.isActive() || ENCRYPTOR.isActive();

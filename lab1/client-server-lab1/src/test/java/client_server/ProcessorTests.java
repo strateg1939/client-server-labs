@@ -17,6 +17,7 @@ import static org.junit.Assert.assertTrue;
 public class ProcessorTests {
     @Before
     public void resetData() {
+        Constants.SHOULD_USE_FAKE_CONNECTION = true;
         Constants.DATA.clear();
     }
 

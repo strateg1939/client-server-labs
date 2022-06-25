@@ -1,5 +1,6 @@
 package client_server;
 
+import java.net.Socket;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -9,8 +10,8 @@ public class Decryptor {
 
     }
 
-    public void decrypt(byte[] message) {
-        decryptorPool.submit(new DecryptorTask(message));
+    public void decrypt(byte[] message, Socket socket) {
+        decryptorPool.submit(new DecryptorTask(message, socket));
     }
 
     public void shutdown(){
@@ -24,16 +25,21 @@ public class Decryptor {
 
 class DecryptorTask implements Runnable {
     private byte[] message;
+    private Socket socket;
 
-    public DecryptorTask(byte[] message){
+    public DecryptorTask(byte[] message, Socket socket){
         this.message = message;
+        this.socket = socket;
     }
     @Override
     public void run() {
         try {
             Packet packet = new Packet(this.message);
+            if (!Constants.SHOULD_USE_FAKE_CONNECTION && socket != null) {
+                Constants.TCP_SERVER.getSocketMap().put(packet.getSrcId(), socket);
+            }
             Constants.PROCESSOR.process(packet);
-        }catch (RuntimeException e) {
+        } catch (RuntimeException e) {
             System.out.println(e.getMessage());
         }
     }

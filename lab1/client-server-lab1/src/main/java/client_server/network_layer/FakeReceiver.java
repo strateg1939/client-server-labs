@@ -30,6 +30,6 @@ public class FakeReceiver implements Receiver {
             message = new Message(code,  srcId, new MessageObject(new Product("prod")));
         }
         PacketSerializer serializer = new PacketSerializer(message, srcId);
-        Constants.DECRYPTOR.decrypt(serializer.getPacket());
+        Constants.DECRYPTOR.decrypt(serializer.getPacket(), null);
     }
 }
