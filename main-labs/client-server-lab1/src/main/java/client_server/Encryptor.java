@@ -14,7 +14,10 @@ public class Encryptor {
     }
 
     public void encrypt(Message message, byte srcId) {
-        encryptPool.submit(new EncryptorTask(message, srcId, (Constants.SHOULD_USE_FAKE_CONNECTION) ? new FakeSender() : Constants.TCP_SERVER));
+        Sender sender = new FakeSender();
+        if(Constants.IS_RUNNING_UDP) sender = Constants.UDP_SERVER;
+        else if (!Constants.SHOULD_USE_FAKE_CONNECTION) sender = Constants.TCP_SERVER;
+        encryptPool.submit(new EncryptorTask(message, srcId, sender));
     }
 
     public void shutdown(){

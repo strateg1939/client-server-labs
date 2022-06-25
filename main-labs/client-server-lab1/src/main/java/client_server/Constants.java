@@ -3,6 +3,7 @@ package client_server;
 import client_server.models.Product;
 import client_server.models.ProductGroup;
 import client_server.network_layer.StoreServerTCP;
+import client_server.network_layer.StoreServerUDP;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -14,6 +15,7 @@ public class Constants {
     public static final Processor PROCESSOR = new Processor();
     public static final Encryptor ENCRYPTOR = new Encryptor();
     public static final StoreServerTCP TCP_SERVER = new StoreServerTCP();
+    public static final StoreServerUDP UDP_SERVER = new StoreServerUDP();
     public static final List<ProductGroup> DATA = Collections.synchronizedList(new ArrayList<>());
 
 
@@ -28,6 +30,9 @@ public class Constants {
     public static final int UDP_PORT = 1338;
     //for tests
     public static boolean SHOULD_USE_FAKE_CONNECTION = false;
+    public static boolean IS_RUNNING_UDP = false;
+
+    public static final String UDP_BAD_PACKET_RESPONSE = "BAD_PACKET";
 
 
     public static boolean anyThreadsActive() {

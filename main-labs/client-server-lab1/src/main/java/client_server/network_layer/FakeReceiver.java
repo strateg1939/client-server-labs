@@ -7,6 +7,7 @@ import client_server.models.MessageObject;
 import client_server.models.Product;
 import client_server.models.ProductGroup;
 
+import java.net.DatagramPacket;
 import java.util.ArrayList;
 
 public class FakeReceiver implements Receiver {
@@ -30,6 +31,6 @@ public class FakeReceiver implements Receiver {
             message = new Message(code,  srcId, new MessageObject(new Product("prod")));
         }
         PacketSerializer serializer = new PacketSerializer(message, srcId);
-        Constants.DECRYPTOR.decrypt(serializer.getPacket(), null);
+        Constants.DECRYPTOR.decrypt(serializer.getPacket(), (DatagramPacket) null);
     }
 }

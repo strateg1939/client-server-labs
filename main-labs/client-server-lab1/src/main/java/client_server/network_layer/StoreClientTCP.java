@@ -9,6 +9,8 @@ import java.io.InputStream;
 import java.net.Socket;
 
 public class StoreClientTCP {
+    private static final int NUMBER_OF_MAX_ATTEMPTS = 4;
+
     private byte srcId;
 
     public StoreClientTCP(byte srcId) {
@@ -17,7 +19,7 @@ public class StoreClientTCP {
 
     public Message sendMessage(byte[] message) {
         int attempt = 0;
-        while (attempt < 4) {
+        while (attempt < NUMBER_OF_MAX_ATTEMPTS) {
             try {
                 Socket clientSocket = new Socket("127.0.0.1", Constants.TCP_PORT);
                 clientSocket.getOutputStream().write(message);
