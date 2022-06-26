@@ -10,6 +10,7 @@ import java.net.Socket;
 
 public class StoreClientTCP {
     private static final int NUMBER_OF_MAX_ATTEMPTS = 4;
+    private static final String SERVER_ADDRESS = "127.0.0.1";
 
     private byte srcId;
 
@@ -21,7 +22,7 @@ public class StoreClientTCP {
         int attempt = 0;
         while (attempt < NUMBER_OF_MAX_ATTEMPTS) {
             try {
-                Socket clientSocket = new Socket("127.0.0.1", Constants.TCP_PORT);
+                Socket clientSocket = new Socket(SERVER_ADDRESS, Constants.TCP_PORT);
                 clientSocket.getOutputStream().write(message);
                 InputStream stream = clientSocket.getInputStream();
                 clientSocket.getOutputStream().flush();

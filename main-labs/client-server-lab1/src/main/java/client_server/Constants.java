@@ -28,8 +28,9 @@ public class Constants {
 
     public static final int TCP_PORT = 1337;
     public static final int UDP_PORT = 1338;
-    //for tests
+    //for tests to use fake sender / receiver
     public static boolean SHOULD_USE_FAKE_CONNECTION = false;
+    //to use UDP or TCP. Probably not the best way to choose them
     public static boolean IS_RUNNING_UDP = false;
 
     public static final String UDP_BAD_PACKET_RESPONSE = "BAD_PACKET";

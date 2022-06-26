@@ -58,6 +58,7 @@ class DecryptorTask implements Runnable {
             Constants.PROCESSOR.process(packet);
         } catch (RuntimeException e) {
             System.out.println(e.getMessage());
+            //if running udp send error message if packet damaged
             if(Constants.IS_RUNNING_UDP) {
                 Message errorMessage = new Message(0,0,new MessageObject(Constants.UDP_BAD_PACKET_RESPONSE));
                 byte freeSrcId = (byte) -100;

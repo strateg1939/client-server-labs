@@ -11,6 +11,8 @@ import java.net.*;
 
 public class StoreClientUDP {
     private static final int NUMBER_OF_MAX_ATTEMPTS = 6;
+    private static final String SERVER_ADDRESS = "localhost";
+    private static final int RESPONSE_MAX_LENGTH = 1024;
 
     private byte srcId;
     private DatagramSocket socket;
@@ -26,9 +28,9 @@ public class StoreClientUDP {
         while (attempt < NUMBER_OF_MAX_ATTEMPTS) {
             try {
                 DatagramPacket packet
-                    = new DatagramPacket(message, message.length, InetAddress.getByName("localhost"), Constants.UDP_PORT);
+                    = new DatagramPacket(message, message.length, InetAddress.getByName(SERVER_ADDRESS), Constants.UDP_PORT);
                 socket.send(packet);
-                byte[] response = new byte[1024];
+                byte[] response = new byte[RESPONSE_MAX_LENGTH];
                 packet = new DatagramPacket(response, response.length);
                 socket.receive(packet);
                 Packet responsePacket = new Packet(packet.getData());
