@@ -7,19 +7,28 @@ public class Product {
     private int amount;
     private double price;
     private String productGroupName;
+    private int id;
 
-    public Product(String name, int amount, double price, String productGroupName) {
+    public int getId() {
+        return id;
+    }
+
+    public Product(String name, int amount, double price, String productGroupName, int id) {
         this.name = name;
         this.amount = amount;
         this.price = price;
         this.productGroupName = productGroupName;
+        this.id = id;
     }
     public Product(){
 
     }
 
     public Product(String name){
-        this(name, 0, 0, null);
+        this(name, 0, 0, null, 0);
+    }
+    public Product(String name, int amount, double price, String productGroupName){
+        this(name, amount, price, productGroupName, 0);
     }
 
     public String getName() {
