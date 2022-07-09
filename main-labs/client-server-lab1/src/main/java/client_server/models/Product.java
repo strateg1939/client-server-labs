@@ -59,4 +59,7 @@ public class Product {
         return productGroupName;
     }
 
+    public void setProductGroupName(String productGroupName) {
+        this.productGroupName = productGroupName;
+    }
 }

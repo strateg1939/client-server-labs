@@ -1,6 +1,7 @@
 package client_server;
 
 import client_server.exceptions.DataAccessException;
+import client_server.http_server.ProductService;
 import client_server.models.Product;
 import client_server.models.ProductFilter;
 import org.junit.After;

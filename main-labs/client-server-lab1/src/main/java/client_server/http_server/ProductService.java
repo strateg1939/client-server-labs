@@ -1,7 +1,8 @@
-package client_server;
+package client_server.http_server;
 
 
 import client_server.exceptions.DataAccessException;
+import client_server.exceptions.DataIncorrectException;
 import client_server.models.Product;
 import client_server.models.ProductFilter;
 
@@ -58,7 +59,7 @@ public class ProductService {
         }
     }
 
-    public void insert(Product product) {
+    public long insert(Product product) {
         if(isNameUnique(product.getName())) {
             String query = "insert into 'products'" + " ('name', 'amount', 'price', 'productGroupName') values (?, ?, ?, ?);";
             try(PreparedStatement preparedStatement = connection.prepareStatement(query)) {
@@ -68,10 +69,18 @@ public class ProductService {
                 preparedStatement.setString(4, product.getProductGroupName());
 
                 preparedStatement.execute();
+                try (ResultSet generatedKeys = preparedStatement.getGeneratedKeys()) {
+                    if (generatedKeys.next()) {
+                        return generatedKeys.getLong(1);
+                    }
+                    else {
+                        throw new DataIncorrectException("Insert failed, no ID obtained.");
+                    }
+                }
             } catch (SQLException e) {
                 throw new DataAccessException(e.getMessage());
             }
-        }
+        } else throw new DataIncorrectException("Product name not unique");
     }
 
     public void update(Product product){
@@ -88,7 +97,7 @@ public class ProductService {
             } catch (SQLException e) {
                 throw new DataAccessException(e.getMessage());
             }
-        }
+        } else throw new DataIncorrectException("Product name not unique");
     }
 
     public void delete(int id){
