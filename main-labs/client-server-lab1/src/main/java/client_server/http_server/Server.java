@@ -3,15 +3,12 @@ package client_server.http_server;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import client_server.Constants;
+import client_server.client.Group;
 import client_server.exceptions.DataAccessException;
 import client_server.exceptions.DataIncorrectException;
 import client_server.models.*;
@@ -46,11 +43,12 @@ public class Server {
         apiEndpoints.add(new Endpoint(Pattern.compile("\\S*/login"), this::loginHandler, (a, b) -> new HashMap<>()));
         apiEndpoints.add(new Endpoint(Pattern.compile("\\S*/product"), this::postProductHandler, (a, b) -> new HashMap<>()));
         apiEndpoints.add(new Endpoint(Pattern.compile("\\S*/product/(\\d+)$"), this::getOrDeleteOrUpdateProductById, this::getProductParamId));
+        apiEndpoints.add(new Endpoint(Pattern.compile("\\S*/groups"), this::getAllGroups, (a, b) -> new HashMap<>()));
 
         this.server = HttpServer.create();
         server.bind(new InetSocketAddress(Constants.TCP_PORT), 0);
-        server.createContext("/api", this::rootHandler)
-            .setAuthenticator(new MyAuthenticator());
+        server.createContext("/api", this::rootHandler);
+   //         .setAuthenticator(new MyAuthenticator());
         server.createContext("/auth", this::rootHandler);
         server.start();
     }
@@ -95,6 +93,13 @@ public class Server {
         }
     }
 
+
+    private void getAllGroups(HttpExchange exchange, Map<String, String> pathParams) throws IOException {
+        exchange.getResponseHeaders().add("Content-Type", "application/json");
+        var list = new ArrayList<Group>();
+        list.add(new Group("test", "test"));
+        writeResponse(exchange, 200, list);
+    }
     private void getOrDeleteOrUpdateProductById(HttpExchange exchange, Map<String, String> pathParams) throws IOException {
         try (InputStream requestBody = exchange.getRequestBody()) {
             exchange.getResponseHeaders().add("Content-Type", "application/json");

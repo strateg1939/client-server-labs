@@ -5,7 +5,7 @@ import client_server.models.Product;
 import java.io.IOException;
 
 //for simple productService test
-public class Main {
+public class MainServer {
     public static void main(String[] args) throws IOException {
         /*
         ProductService productService = new ProductService("Products.db");

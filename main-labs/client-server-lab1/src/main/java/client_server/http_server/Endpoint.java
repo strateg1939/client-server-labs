@@ -8,10 +8,6 @@ import java.util.regex.Pattern;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
-import lombok.AccessLevel;
-import lombok.Data;
-import lombok.RequiredArgsConstructor;
-
 public class Endpoint {
 
     private Pattern urlPattern;
