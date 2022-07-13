@@ -44,7 +44,9 @@ public class Server {
         apiEndpoints.add(new Endpoint(Pattern.compile("\\S*/login"), this::loginHandler, (a, b) -> new HashMap<>()));
         apiEndpoints.add(new Endpoint(Pattern.compile("\\S*/product"), this::postProductHandler, (a, b) -> new HashMap<>()));
         apiEndpoints.add(new Endpoint(Pattern.compile("\\S*/product/(\\d+)$"), this::getOrDeleteOrUpdateProductById, this::getProductParamId));
-        apiEndpoints.add(new Endpoint(Pattern.compile("\\S*/groups"), this::getAllGroups, (a, b) -> new HashMap<>()));
+        apiEndpoints.add(new Endpoint(Pattern.compile("\\S*/group"), this::postGroupHandler, (a, b) -> new HashMap<>()));
+        apiEndpoints.add(new Endpoint(Pattern.compile("\\S*/group/(\\d+)$"), this::getOrDeleteOrUpdateGroupById, this::getProductParamId));
+
 
         this.server = HttpServer.create();
         server.bind(new InetSocketAddress(Constants.TCP_PORT), 0);
@@ -283,16 +285,7 @@ public class Server {
         }};
     }
 
-    private Map<String, String> getGroupParamId(String uri, Pattern pattern) {
-        Matcher matcher = pattern.matcher(uri);
-        matcher.find();
-
-        return new HashMap<String, String>() {{
-            put("productId", matcher.group(1));
-        }};
-    }
-
-    private void handlerNoFound(HttpExchange exchange) {
+     private void handlerNoFound(HttpExchange exchange) {
         try {
             exchange.sendResponseHeaders(404, 0);
             exchange.close();
