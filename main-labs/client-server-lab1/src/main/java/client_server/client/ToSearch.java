@@ -19,12 +19,8 @@ public class ToSearch extends JFrame {
         //add menu
         MenuBar menuBar = new MenuBar();
         PopupMenu menu = new PopupMenu("Опції");
-        MenuItem menuSave = new MenuItem("Зберегти", new MenuShortcut(KeyEvent.VK_S));
-        menu.add(menuSave);
         menuBar.add(menu);
         this.setMenuBar(menuBar);
-
-        menuSave.addActionListener(e -> Main.storage.saveGroups());
 
         tableModel = new DefaultTableModel() {
             @Override

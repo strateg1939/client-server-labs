@@ -226,15 +226,20 @@ public class Server {
             String method = exchange.getRequestMethod();
 
             if (method.equals("POST")) {
+                System.out.println("post product");
                 Product product = OBJECT_MAPPER.readValue(requestBody, Product.class);
                 if (product != null) {
                     if (product.getAmount() >= 0 && product.getPrice() > 0) {
+
                         Product product1 = _productService.createProduct(product);
                         writeResponse(exchange, 201, new Response(OBJECT_MAPPER.writeValueAsString(product1)));
+
                     } else {
+                        System.out.println("incorrect");
                         writeResponse(exchange, 409, new Response("Wrong input"));
                     }
                 } else {
+                    System.out.println("null");
                     writeResponse(exchange, 409, new Response("Wrong input"));
                 }
             } else {
@@ -242,10 +247,15 @@ public class Server {
             }
 
         } catch (DataAccessException e) {
-            writeResponse(exchange, 500, new Response("Delete fail"));
+            System.out.println("fail");
+            writeResponse(exchange, 500, new Response("post fail"));
             e.printStackTrace();
         } catch (DataIncorrectException e) {
+            System.out.println("fail");
             writeResponse(exchange, 409, new Response(e.getMessage()));
+        }
+        catch (Exception e) {
+            System.out.println("Major fail");
         }
     }
 
