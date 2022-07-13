@@ -1,17 +1,16 @@
 package client_server.http_server;
 
 import client_server.exceptions.DataAccessException;
-import client_server.models.Product;
-
+import client_server.models.ProductGroup;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ProductService {
+public class GroupService {
 
     private final Connection connection;
 
-    public ProductService(String dbFile){
+    public GroupService(String dbFile){
         try {
             Class.forName("org.sqlite.JDBC");
             this.connection = DriverManager.getConnection("jdbc:sqlite:"+dbFile);
@@ -24,85 +23,71 @@ public class ProductService {
         }
         try {
             Statement st1 = connection.createStatement();
-            String dropTable = "DROP TABLE IF EXISTS products";
+            String dropTable = "DROP TABLE IF EXISTS groups";
             st1.execute(dropTable);
 
             Statement st = connection.createStatement();
-            String createTable = "CREATE TABLE IF NOT EXISTS products(" +
+            String createTable = "CREATE TABLE IF NOT EXISTS groups(" +
                     "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL," +
                     "name TEXT NOT NULL," +
-                    "groupId INT NOT NULL," +
-                    "description TEXT NOT NULL," +
-                    "manufacturer TEXT NOT NULL," +
-                    "price REAL NOT NULL," +
-                    "amount INT NOT NULL," +
-                    "FOREIGN KEY(groupId) REFERENCES groups(id) ON DELETE CASCADE)";
+                    "description TEXT NOT NULL)";
             st.execute(createTable);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public Product createProduct(Product product) {
-        String sql = "INSERT INTO products (name, groupId, description, manufacturer, price, amount) VALUES (?,?,?,?,?,?)";
+    public ProductGroup createGroup(ProductGroup group) {
+        String sql = "INSERT INTO groups (name, description) VALUES (?,?)";
         String[] generatedColumns = {"ID"};
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql, generatedColumns)) {
-            preparedStatement.setString(1, product.getName());
-            preparedStatement.setInt(2, product.getGroupId());
-            preparedStatement.setString(3, product.getDescription());
-            preparedStatement.setString(4, product.getProducer());
-            preparedStatement.setDouble(5, product.getPrice());
-            preparedStatement.setInt(6, product.getAmount());
+            preparedStatement.setString(1, group.getName());
+            preparedStatement.setString(2, group.getDescription());
             preparedStatement.execute();
 
             ResultSet rs = preparedStatement.getGeneratedKeys();
             int id = rs.getInt(1);
-            product.setId(id);
-            return product;
+            group.setId(id);
+            return group;
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
     }
 
-    public List<Product> getAllProducts() {
-        List<Product> products = new ArrayList<>();
-        String sql = "SELECT * FROM products";
+    public List<ProductGroup> getAllGroups() {
+        List<ProductGroup> groups = new ArrayList<>();
+        String sql = "SELECT g.id, g.name, g.description, " +
+                "(SELECT SUM(p.price * p.amount) FROM products p WHERE p.groupId = g.id) totalPrice " +
+                "FROM groups g";
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             ResultSet resultSet = preparedStatement.executeQuery();
             while (resultSet.next()) {
-                products.add(new Product(
-                        resultSet.getString("name"),
-                        resultSet.getInt("amount"),
-                        resultSet.getDouble("price"),
-                        resultSet.getString("description"),
-                        resultSet.getString("manufacturer"),
+                groups.add(new ProductGroup(
                         resultSet.getInt("id"),
-                        resultSet.getInt("groupId")
+                        resultSet.getString("name"),
+                        resultSet.getString("description"),
+                        resultSet.getDouble("totalPrice")
                 ));
             }
             resultSet.close();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        return products;
+        return groups;
     }
 
-    public Product getOneProduct(int id) {
-        Product result = null;
-        String sql = "SELECT * FROM products WHERE id = ?";
+    public ProductGroup getOneGroup(int id) {
+        ProductGroup result = null;
+        String sql = "SELECT * FROM groups WHERE id = ?";
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setInt(1, id);
             ResultSet resultSet = preparedStatement.executeQuery();
             if (resultSet.next()) {
-                result = new Product(
-                        resultSet.getString("name"),
-                        resultSet.getInt("amount"),
-                        resultSet.getDouble("price"),
-                        resultSet.getString("description"),
-                        resultSet.getString("manufacturer"),
+                result = new ProductGroup(
                         resultSet.getInt("id"),
-                        resultSet.getInt("groupId")
+                        resultSet.getString("name"),
+                        resultSet.getString("description")
                 );
             }
             resultSet.close();
@@ -113,25 +98,22 @@ public class ProductService {
         return result;
     }
 
-    public Product updateProduct(int id, Product product) {
-        String sql = "UPDATE products SET name = ?, description = ?, manufacturer = ?, price = ?, amount = ? WHERE id = ?";
+    public ProductGroup updateGroup(int id, ProductGroup group) {
+        String sql = "UPDATE groups SET name = ?, description = ? WHERE id = ?";
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-            preparedStatement.setString(1, product.getName());
-            preparedStatement.setString(2, product.getDescription());
-            preparedStatement.setString(3, product.getProducer());
-            preparedStatement.setDouble(4, product.getPrice());
-            preparedStatement.setInt(5, product.getAmount());
-            preparedStatement.setInt(6, id);
+            preparedStatement.setString(1, group.getName());
+            preparedStatement.setString(2, group.getDescription());
+            preparedStatement.setInt(3, id);
             preparedStatement.execute();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        product.setId(id);
-        return product;
+        group.setId(id);
+        return group;
     }
 
-    public void deleteProduct(int id) {
-        String sql = "DELETE FROM products WHERE id = ?";
+    public void deleteGroup(int id) {
+        String sql = "DELETE FROM groups WHERE id = ?";
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setInt(1, id);
             preparedStatement.execute();
@@ -141,7 +123,7 @@ public class ProductService {
     }
 
     public boolean checkIfNameExists(String name) {
-        String sql = "SELECT * FROM products WHERE name = ?";
+        String sql = "SELECT * FROM groups WHERE name = ?";
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setString(1, name);
             ResultSet resultSet = preparedStatement.executeQuery();
@@ -149,7 +131,7 @@ public class ProductService {
             resultSet.close();
             return exists;
         } catch (Exception e) {
-            System.out.println(e);
+            System.out.println(e.getMessage());
             throw new RuntimeException(e);
         }
     }

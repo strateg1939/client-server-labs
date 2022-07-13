@@ -6,29 +6,57 @@ public class Product {
     private String name;
     private int amount;
     private double price;
-    private String productGroupName;
+    private String description;
+    private String producer;
     private int id;
+    private int groupId;
+
+
+    public int getGroupId() {
+        return groupId;
+    }
+
+    public Product(String name, int amount, double price, String description, String producer, int id, int groupId) {
+        this.name = name;
+        this.amount = amount;
+        this.price = price;
+        this.description = description;
+        this.producer = producer;
+        this.id = id;
+        this.groupId = groupId;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getProducer() {
+        return producer;
+    }
+
+    public void setProducer(String producer) {
+        this.producer = producer;
+    }
+
+    public void setGroupId(int groupId) {
+        this.groupId = groupId;
+    }
+
 
     public int getId() {
         return id;
     }
 
-    public Product(String name, int amount, double price, String productGroupName, int id) {
-        this.name = name;
-        this.amount = amount;
-        this.price = price;
-        this.productGroupName = productGroupName;
-        this.id = id;
-    }
     public Product(){
 
     }
 
-    public Product(String name){
-        this(name, 0, 0, null, 0);
-    }
-    public Product(String name, int amount, double price, String productGroupName){
-        this(name, amount, price, productGroupName, 0);
+    public void setId(int id) {
+        this.id = id;
     }
 
     public String getName() {
@@ -55,11 +83,4 @@ public class Product {
         this.price = price;
     }
 
-    public String getProductGroupName() {
-        return productGroupName;
-    }
-
-    public void setProductGroupName(String productGroupName) {
-        this.productGroupName = productGroupName;
-    }
 }
