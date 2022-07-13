@@ -1,14 +1,39 @@
 package client_server.models;
 
-import java.util.List;
-
 public class ProductGroup {
+    private int id;
     private String name;
-    private List<Product> products;
+    private String description;
 
-    public ProductGroup(String name, List<Product> products) {
+    private double totalPrice;
+
+    public ProductGroup() {
+    }
+
+    public ProductGroup(int id, String name, String description) {
+        this.id = id;
         this.name = name;
-        this.products = products;
+        this.description = description;
+    }
+
+    public ProductGroup(int id, String name, String description, double totalPrice) {
+        this.id = id;
+        this.name = name;
+        this.description = description;
+        this.totalPrice = totalPrice;
+    }
+
+    public ProductGroup(String name, String description) {
+        this.name = name;
+        this.description = description;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 
     public String getName() {
@@ -19,12 +44,19 @@ public class ProductGroup {
         this.name = name;
     }
 
-    public List<Product> getProducts() {
-        return products;
+    public String getDescription() {
+        return description;
     }
 
-    public void setProducts(List<Product> products) {
-        this.products = products;
+    public void setDescription(String description) {
+        this.description = description;
     }
 
+    public double getTotalPrice() {
+        return totalPrice;
+    }
+
+    public void setTotalPrice(double totalPrice) {
+        this.totalPrice = totalPrice;
+    }
 }

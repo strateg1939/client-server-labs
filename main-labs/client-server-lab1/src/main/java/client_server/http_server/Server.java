@@ -164,6 +164,70 @@ public class Server {
         }
     }
 
+    private void getOrDeleteOrUpdateGroupById(HttpExchange exchange, Map<String, String> pathParams) throws IOException {
+        try (InputStream requestBody = exchange.getRequestBody()) {
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            String method = exchange.getRequestMethod();
+
+            int productId = Integer.parseInt(pathParams.get("groupId"));
+            Product product = _productService.get(productId);
+            if (method.equals("GET")) {
+                if (product != null) {
+                    writeResponse(exchange, 200, product);
+                } else {
+                    writeResponse(exchange, 404, new Response("No group with such id"));
+                }
+            } else if (method.equals("DELETE")) {
+                if (product != null) {
+                    _productService.delete(productId);
+                    exchange.sendResponseHeaders(204, -1);
+                } else {
+                    writeResponse(exchange, 404, new Response("No group with such id"));
+                }
+            } else if(method.equals("PUT")) {
+                Product productReceived = OBJECT_MAPPER.readValue(requestBody, Product.class);
+                if (product != null) {
+                    String name = productReceived.getName();
+                    if (name != null) {
+                        product.setName(name);
+                    }
+                    double price = productReceived.getPrice();
+                    if (price > 0) {
+                        product.setPrice(price);
+                    } else if (price < 0) {
+                        writeResponse(exchange, 409, new Response("Wrong input"));
+                        return;
+                    }
+
+                    int amount = productReceived.getAmount();
+                    if (amount > 0) {
+                        product.setAmount(amount);
+                    } else if (amount < 0) {
+                        writeResponse(exchange, 409, new Response("Wrong input"));
+                        return;
+                    }
+
+                    String description = productReceived.getProductGroupName();
+                    if (description != null) {
+                        product.setProductGroupName(description);
+                    }
+                    _productService.update(product);
+                    exchange.sendResponseHeaders(204, -1);
+                } else {
+                    writeResponse(exchange, 404, new Response("No such product"));
+                }
+            } else {
+                writeResponse(exchange, 404, new Response("Not appropriate command"));
+            }
+
+        } catch (DataAccessException e) {
+            writeResponse(exchange, 500, new Response("Delete fail"));
+            e.printStackTrace();
+        } catch (DataIncorrectException e) {
+            writeResponse(exchange, 409, new Response(e.getMessage()));
+        }
+    }
+
     private void postProductHandler(HttpExchange exchange, Map<String, String> pathParams) throws IOException {
         try (InputStream requestBody = exchange.getRequestBody()) {
             exchange.getResponseHeaders()
