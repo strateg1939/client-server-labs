@@ -29,6 +29,7 @@ public class Server {
 
     private final UserService _userService = new UserService("file.db");
     private final ProductService _productService = new ProductService("file.db");
+    private final GroupService _groupService = new GroupService("file.db");
     private final List<Endpoint> apiEndpoints = new ArrayList<>();
 
     private final HttpServer server;
@@ -169,49 +170,34 @@ public class Server {
             exchange.getResponseHeaders().add("Content-Type", "application/json");
             String method = exchange.getRequestMethod();
 
-            int productId = Integer.parseInt(pathParams.get("groupId"));
-            Product product = _productService.get(productId);
+            int groupId = Integer.parseInt(pathParams.get("productId"));
+            ProductGroup group = _groupService.getOneGroup(groupId);
             if (method.equals("GET")) {
-                if (product != null) {
-                    writeResponse(exchange, 200, product);
+                if (group != null) {
+                    writeResponse(exchange, 200, group);
                 } else {
                     writeResponse(exchange, 404, new Response("No group with such id"));
                 }
             } else if (method.equals("DELETE")) {
-                if (product != null) {
-                    _productService.delete(productId);
+                if (group != null) {
+                    _productService.delete(groupId);
                     exchange.sendResponseHeaders(204, -1);
                 } else {
                     writeResponse(exchange, 404, new Response("No group with such id"));
                 }
             } else if(method.equals("PUT")) {
                 Product productReceived = OBJECT_MAPPER.readValue(requestBody, Product.class);
-                if (product != null) {
+                if (group != null) {
                     String name = productReceived.getName();
                     if (name != null) {
-                        product.setName(name);
-                    }
-                    double price = productReceived.getPrice();
-                    if (price > 0) {
-                        product.setPrice(price);
-                    } else if (price < 0) {
-                        writeResponse(exchange, 409, new Response("Wrong input"));
-                        return;
-                    }
-
-                    int amount = productReceived.getAmount();
-                    if (amount > 0) {
-                        product.setAmount(amount);
-                    } else if (amount < 0) {
-                        writeResponse(exchange, 409, new Response("Wrong input"));
-                        return;
+                        group.setName(name);
                     }
 
                     String description = productReceived.getProductGroupName();
                     if (description != null) {
-                        product.setProductGroupName(description);
+                        group.setName(description);
                     }
-                    _productService.update(product);
+                    _groupService.updateGroup(groupId, group);
                     exchange.sendResponseHeaders(204, -1);
                 } else {
                     writeResponse(exchange, 404, new Response("No such product"));
@@ -258,7 +244,46 @@ public class Server {
         }
     }
 
+    private void postGroupHandler(HttpExchange exchange, Map<String, String> pathParams) throws IOException {
+        try (InputStream requestBody = exchange.getRequestBody()) {
+            exchange.getResponseHeaders()
+                    .add("Content-Type", "application/json");
+            String method = exchange.getRequestMethod();
+
+            if (method.equals("POST")) {
+                ProductGroup group = OBJECT_MAPPER.readValue(requestBody, ProductGroup.class);
+                if (group != null) {
+
+                        ProductGroup group1 = _groupService.createGroup(group);
+                        long id = group1.getId();
+                        writeResponse(exchange, 201, new Response("{ \"id\" : " + id + "}"));
+
+                        writeResponse(exchange, 409, new Response("Wrong input"));
+                } else {
+                    writeResponse(exchange, 409, new Response("Wrong input"));
+                }
+            } else {
+                writeResponse(exchange, 404, new Response("Not appropriate command"));
+            }
+
+        } catch (DataAccessException e) {
+            writeResponse(exchange, 500, new Response("Delete fail"));
+            e.printStackTrace();
+        } catch (DataIncorrectException e) {
+            writeResponse(exchange, 409, new Response(e.getMessage()));
+        }
+    }
+
     private Map<String, String> getProductParamId(String uri, Pattern pattern) {
+        Matcher matcher = pattern.matcher(uri);
+        matcher.find();
+
+        return new HashMap<String, String>() {{
+            put("productId", matcher.group(1));
+        }};
+    }
+
+    private Map<String, String> getGroupParamId(String uri, Pattern pattern) {
         Matcher matcher = pattern.matcher(uri);
         matcher.find();
 
