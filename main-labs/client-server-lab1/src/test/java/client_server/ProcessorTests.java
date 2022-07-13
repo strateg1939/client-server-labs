@@ -3,7 +3,6 @@ package client_server;
 import client_server.models.MessageObject;
 import client_server.models.Product;
 import client_server.models.ProductGroup;
-import client_server.network_layer.FakeReceiver;
 import client_server.network_layer.Receiver;
 import org.junit.AfterClass;
 import org.junit.Before;

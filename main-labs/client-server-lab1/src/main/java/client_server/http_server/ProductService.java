@@ -1,19 +1,14 @@
 package client_server.http_server;
 
-
 import client_server.exceptions.DataAccessException;
-import client_server.exceptions.DataIncorrectException;
 import client_server.models.Product;
-import client_server.models.ProductFilter;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class ProductService {
+
     private final Connection connection;
 
     public ProductService(String dbFile){
@@ -27,173 +22,135 @@ public class ProductService {
             e.printStackTrace();
             throw new DataAccessException(e.getMessage());
         }
+        try {
+            Statement st1 = connection.createStatement();
+            String dropTable = "DROP TABLE IF EXISTS products";
+            st1.execute(dropTable);
 
-        initializeTable();
-    }
-
-    private void initializeTable() {
-        try (Statement statement = connection.createStatement()) {
-            String query = "create table if not exists 'products' " +
-                "('id' INTEGER PRIMARY KEY AUTOINCREMENT, 'name' varchar not null, 'price' double not null, 'amount' integer not null, 'productGroupName' varchar not null);";
-            statement.execute(query);
+            Statement st = connection.createStatement();
+            String createTable = "CREATE TABLE IF NOT EXISTS products(" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL," +
+                    "name TEXT NOT NULL," +
+                    "groupId INT NOT NULL," +
+                    "description TEXT NOT NULL," +
+                    "manufacturer TEXT NOT NULL," +
+                    "price REAL NOT NULL," +
+                    "amount INT NOT NULL," +
+                    "FOREIGN KEY(groupId) REFERENCES groups(id) ON DELETE CASCADE)";
+            st.execute(createTable);
         } catch (SQLException e) {
-            throw new DataAccessException(e.getMessage());
+            throw new RuntimeException(e);
         }
-
     }
 
-    public Product get(int id) {
-        try (Statement statement = connection.createStatement()) {
-            String sql = "select * from 'products' where id = " + id;
-            ResultSet resultSet = statement.executeQuery(sql);
-            resultSet.next();
-            Product product = new Product(resultSet.getString("name"),
-                resultSet.getInt("amount"),
-                resultSet.getDouble("price"),
-                resultSet.getString("productGroupName"),
-                resultSet.getInt("id"));
+    public Product createProduct(Product product) {
+        String sql = "INSERT INTO products (name, groupId, description, manufacturer, price, amount) VALUES (?,?,?,?,?,?)";
+        String[] generatedColumns = {"ID"};
+        try (PreparedStatement preparedStatement = connection.prepareStatement(sql, generatedColumns)) {
+            preparedStatement.setString(1, product.getName());
+            preparedStatement.setInt(2, product.getGroupId());
+            preparedStatement.setString(3, product.getDescription());
+            preparedStatement.setString(4, product.getProducer());
+            preparedStatement.setDouble(5, product.getPrice());
+            preparedStatement.setInt(6, product.getAmount());
+            preparedStatement.execute();
 
+            ResultSet rs = preparedStatement.getGeneratedKeys();
+            int id = rs.getInt(1);
+            product.setId(id);
             return product;
-        } catch (SQLException e) {
-            throw new DataAccessException(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
         }
     }
 
-    public long insert(Product product) {
-        if(isNameUnique(product.getName())) {
-            String query = "insert into 'products'" + " ('name', 'amount', 'price', 'productGroupName') values (?, ?, ?, ?);";
-            try(PreparedStatement preparedStatement = connection.prepareStatement(query)) {
-                preparedStatement.setString(1, product.getName());
-                preparedStatement.setInt(2, product.getAmount());
-                preparedStatement.setDouble(3, product.getPrice());
-                preparedStatement.setString(4, product.getProductGroupName());
-
-                preparedStatement.execute();
-                try (ResultSet generatedKeys = preparedStatement.getGeneratedKeys()) {
-                    if (generatedKeys.next()) {
-                        return generatedKeys.getLong(1);
-                    }
-                    else {
-                        throw new DataIncorrectException("Insert failed, no ID obtained.");
-                    }
-                }
-            } catch (SQLException e) {
-                throw new DataAccessException(e.getMessage());
-            }
-        } else throw new DataIncorrectException("Product name not unique");
-    }
-
-    public void update(Product product){
-        if(isNameUnique(product.getName())) {
-            try (PreparedStatement preparedStatement =
-                     connection.prepareStatement("update 'products' set name = ?, amount = ?, price = ?, productGroupName = ? where id = ?")) {
-                preparedStatement.setString(1, product.getName());
-                preparedStatement.setInt(2, product.getAmount());
-                preparedStatement.setDouble(3, product.getPrice());
-                preparedStatement.setString(4, product.getProductGroupName());
-                preparedStatement.setInt(5, product.getId());
-
-                preparedStatement.executeUpdate();
-            } catch (SQLException e) {
-                throw new DataAccessException(e.getMessage());
-            }
-        } else throw new DataIncorrectException("Product name not unique");
-    }
-
-    public void delete(int id){
-        try(PreparedStatement preparedStatement = connection.prepareStatement("delete from 'products' where id = ?")) {
-            preparedStatement.setInt(1, id);
-            preparedStatement.executeUpdate();
-        } catch (SQLException e) {
-            throw new DataAccessException(e.getMessage());
-        }
-    }
-
-
-    public List<Product> getAll() {
-        return listByCriteria(-1, new ProductFilter());
-    }
-    public List<Product> getAll(int size){
-        return listByCriteria(size, new ProductFilter());
-    }
-
-    public List<Product> listByCriteria(int size, ProductFilter filter) {
-        try(Statement statement = connection.createStatement()) {
-            String query = Stream.of(
-                    more("price", filter.getFromPrice()),
-                    less("price", filter.getToPrice()),
-                    stringEquals("productGroupName", filter.getGroup()),
-                    stringEquals("name", filter.getName())
-                )
-                .filter(Objects::nonNull)
-                .collect(Collectors.joining(" AND "));
-
-            String where = query.isEmpty() ? "" : " where " + query;
-            String sql = String.format("select * from 'products' %s limit %s", where, size);
-            if(size == -1) {
-                sql = String.format("select * from 'products' %s", where);
-            }
-            ResultSet resultSet = statement.executeQuery(sql);
-
-            List<Product> products = new ArrayList<>();
-            while(resultSet.next()) {
+    public List<Product> getAllProducts() {
+        List<Product> products = new ArrayList<>();
+        String sql = "SELECT * FROM products";
+        try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+            ResultSet resultSet = preparedStatement.executeQuery();
+            while (resultSet.next()) {
                 products.add(new Product(
-                    resultSet.getString("name"),
-                    resultSet.getInt("amount"),
-                    resultSet.getDouble("price"),
-                    resultSet.getString("productGroupName"),
-                    resultSet.getInt("id")));
+                        resultSet.getString("name"),
+                        resultSet.getInt("amount"),
+                        resultSet.getDouble("price"),
+                        resultSet.getString("description"),
+                        resultSet.getString("manufacturer"),
+                        resultSet.getInt("id"),
+                        resultSet.getInt("groupId")
+                ));
             }
-            return products;
-        } catch (SQLException e) {
-            throw new DataAccessException(e.getMessage());
+            resultSet.close();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return products;
+    }
+
+    public Product getOneProduct(int id) {
+        Product result = null;
+        String sql = "SELECT * FROM products WHERE id = ?";
+        try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+            preparedStatement.setInt(1, id);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            if (resultSet.next()) {
+                result = new Product(
+                        resultSet.getString("name"),
+                        resultSet.getInt("amount"),
+                        resultSet.getDouble("price"),
+                        resultSet.getString("description"),
+                        resultSet.getString("manufacturer"),
+                        resultSet.getInt("id"),
+                        resultSet.getInt("groupId")
+                );
+            }
+            resultSet.close();
+        } catch (Exception e) {
+            System.out.println(e);
+            throw new RuntimeException(e);
+        }
+        return result;
+    }
+
+    public Product updateProduct(int id, Product product) {
+        String sql = "UPDATE products SET name = ?, description = ?, manufacturer = ?, price = ?, amount = ? WHERE id = ?";
+        try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+            preparedStatement.setString(1, product.getName());
+            preparedStatement.setString(2, product.getDescription());
+            preparedStatement.setString(3, product.getProducer());
+            preparedStatement.setDouble(4, product.getPrice());
+            preparedStatement.setInt(5, product.getAmount());
+            preparedStatement.setInt(6, id);
+            preparedStatement.execute();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        product.setId(id);
+        return product;
+    }
+
+    public void deleteProduct(int id) {
+        String sql = "DELETE FROM products WHERE id = ?";
+        try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+            preparedStatement.setInt(1, id);
+            preparedStatement.execute();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
-    public void deleteAll() {
-        try(Statement statement = connection.createStatement()) {
-            String query = "delete from 'products'";
-            statement.execute(query);
-        } catch (SQLException e) {
-            throw new DataAccessException(e.getMessage());
+    public boolean checkIfNameExists(String name) {
+        String sql = "SELECT * FROM products WHERE name = ?";
+        try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+            preparedStatement.setString(1, name);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            boolean exists = resultSet.next();
+            resultSet.close();
+            return exists;
+        } catch (Exception e) {
+            System.out.println(e);
+            throw new RuntimeException(e);
         }
     }
-
-    private String more(String fieldName, Double value) {
-        if(value == null){
-            return null;
-        }
-        return fieldName + " >= " + value;
-    }
-
-    private String stringEquals(String fieldName, String value) {
-        if(value == null){
-            return null;
-        }
-        return fieldName + " = '" + value +"'";
-    }
-
-
-    private String less(String fieldName, Double value) {
-        if(value == null){
-            return null;
-        }
-        return fieldName + " <= " + value;
-    }
-
-
-    private boolean isNameUnique(String productName){
-        try(Statement statement = connection.createStatement()) {
-            ResultSet resultSet = statement.executeQuery(
-                String.format("select count(*) as count from 'products' where name = '%s'", productName)
-            );
-            resultSet.next();
-            return resultSet.getInt("count") == 0;
-        } catch (SQLException e) {
-            throw new DataAccessException(e.getMessage());
-        }
-    }
-
 }
-
-

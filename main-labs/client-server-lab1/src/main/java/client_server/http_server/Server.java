@@ -7,7 +7,6 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import client_server.Constants;
 import client_server.client.Group;
 import client_server.exceptions.DataAccessException;
 import client_server.exceptions.DataIncorrectException;
@@ -49,7 +48,7 @@ public class Server {
 
 
         this.server = HttpServer.create();
-        server.bind(new InetSocketAddress(Constants.TCP_PORT), 0);
+        server.bind(new InetSocketAddress(1337), 0);
         server.createContext("/api", this::rootHandler);
    //         .setAuthenticator(new MyAuthenticator());
         server.createContext("/auth", this::rootHandler);
@@ -109,7 +108,7 @@ public class Server {
             String method = exchange.getRequestMethod();
 
             int productId = Integer.parseInt(pathParams.get("productId"));
-            Product product = _productService.get(productId);
+            Product product = _productService.getOneProduct(productId);
             if (method.equals("GET")) {
                 if (product != null) {
                     writeResponse(exchange, 200, product);
@@ -118,7 +117,7 @@ public class Server {
                 }
             } else if (method.equals("DELETE")) {
                 if (product != null) {
-                    _productService.delete(productId);
+                    _productService.deleteProduct(productId);
                     exchange.sendResponseHeaders(204, -1);
                 } else {
                     writeResponse(exchange, 404, new Response("No product with such id"));
@@ -146,11 +145,15 @@ public class Server {
                         return;
                     }
 
-                    String description = productReceived.getProductGroupName();
+                    String description = productReceived.getDescription();
                     if (description != null) {
-                        product.setProductGroupName(description);
+                        product.setDescription(description);
                     }
-                    _productService.update(product);
+                    String producer = productReceived.getProducer();
+                    if (producer != null) {
+                        product.setProducer(producer);
+                    }
+                    _productService.updateProduct(productId, product);
                     exchange.sendResponseHeaders(204, -1);
                 } else {
                     writeResponse(exchange, 404, new Response("No such product"));
@@ -182,22 +185,22 @@ public class Server {
                 }
             } else if (method.equals("DELETE")) {
                 if (group != null) {
-                    _productService.delete(groupId);
+                    _groupService.deleteGroup(groupId);
                     exchange.sendResponseHeaders(204, -1);
                 } else {
                     writeResponse(exchange, 404, new Response("No group with such id"));
                 }
             } else if(method.equals("PUT")) {
-                Product productReceived = OBJECT_MAPPER.readValue(requestBody, Product.class);
+                ProductGroup productGroup = OBJECT_MAPPER.readValue(requestBody, ProductGroup.class);
                 if (group != null) {
-                    String name = productReceived.getName();
+                    String name = productGroup.getName();
                     if (name != null) {
                         group.setName(name);
                     }
 
-                    String description = productReceived.getProductGroupName();
+                    String description = productGroup.getDescription();
                     if (description != null) {
-                        group.setName(description);
+                        group.setDescription(description);
                     }
                     _groupService.updateGroup(groupId, group);
                     exchange.sendResponseHeaders(204, -1);
@@ -226,8 +229,8 @@ public class Server {
                 Product product = OBJECT_MAPPER.readValue(requestBody, Product.class);
                 if (product != null) {
                     if (product.getAmount() >= 0 && product.getPrice() > 0) {
-                        long id = _productService.insert(product);
-                        writeResponse(exchange, 201, new Response("{ \"id\" : " + id + "}"));
+                        Product product1 = _productService.createProduct(product);
+                        writeResponse(exchange, 201, new Response(OBJECT_MAPPER.writeValueAsString(product1)));
                     } else {
                         writeResponse(exchange, 409, new Response("Wrong input"));
                     }
