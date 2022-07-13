@@ -13,7 +13,6 @@ import java.util.ArrayList;
 public class Main extends JFrame {
     protected static JFrame main;
     protected static Storage storage;
-    private static CreateDelete createDelete;
 
     private static JButton add;
     private static JButton remove;
@@ -47,13 +46,10 @@ public class Main extends JFrame {
         //add menu
         MenuBar menuBar = new MenuBar();
         PopupMenu menu = new PopupMenu("Опції");
-        MenuItem menuSave = new MenuItem("Зберегти", new MenuShortcut(KeyEvent.VK_S));
-        menu.add(menuSave);
         menuBar.add(menu);
         menuBar.setFont(new Font("sans-serif", Font.BOLD, 12));
         this.setMenuBar(menuBar);
         //save option
-        menuSave.addActionListener(e -> storage.saveGroups());
         //buttons
         add = new JButton("Додати");
         remove = new JButton("Видалити");
@@ -78,7 +74,6 @@ public class Main extends JFrame {
      */
     public static void getAllGroups() {
         main.setTitle("Склад");
-        createDelete = storage;
         if (currentTable != null) main.remove(currentTable);
         removeActionListeners();
         DefaultTableModel tableModel = new DefaultTableModel();
@@ -112,15 +107,20 @@ public class Main extends JFrame {
                         break;
                     }
                 }
-                String nameOfGroup = storage.getAllGroups().get(row).name;
+                Group group = storage.getAllGroups().get(row);
+                String nameOfGroup = group.name;
                 if (column == 0) {
                     if (!sameName) {
-                        storage.getAllGroups().get(row).name = data;
+                        group.name = data;
+                        storage.updateGroup(group);
                     } else {
                         JOptionPane.showMessageDialog(main, "Таке ім'я групи товарів вже існує!");
                         model.setValueAt(nameOfGroup, row, column);
                     }
-                } else storage.getAllGroups().get(row).description = data;
+                } else {
+                    group.description = data;
+                    storage.updateGroup(group);
+                }
                 model.addTableModelListener(this);
             }
         });
@@ -148,7 +148,7 @@ public class Main extends JFrame {
                 }
 
                 if (!sameName) {
-                    createDelete.add(group);
+                    storage.addGroup(group);
                     tableModel.addRow(new String[]{
                             group.name,
                             group.description});
@@ -162,7 +162,7 @@ public class Main extends JFrame {
         remove.addActionListener(e -> {
             int idx = table.getSelectedRow();
             if (idx < 0) return;
-            createDelete.remove(idx);
+            storage.deleteGroup(storage.getAllGroups().get(idx), idx);
             tableModel.removeRow(idx);
         });
         //go to the selected groups products
@@ -311,7 +311,6 @@ public class Main extends JFrame {
 
     private static void getProductTable(Group group) {
         main.setTitle("Товари з групи " + group.name);
-        createDelete = group;
         removeActionListeners();
         if (currentTable != null) main.remove(currentTable);
         DefaultTableModel tableModel = new DefaultTableModel();
@@ -369,6 +368,7 @@ public class Main extends JFrame {
                         else product.price = value;
                     }
                 }
+                storage.updateProduct(product);
                 model.addTableModelListener(this);
             }
         });
@@ -408,7 +408,7 @@ public class Main extends JFrame {
                     }
                 }
                 if (!sameName) {
-                    createDelete.add(product);
+                    storage.addProduct(product, group);
                     tableModel.addRow(new String[]{
                             product.name,
                             product.description,
@@ -424,7 +424,8 @@ public class Main extends JFrame {
         remove.addActionListener(e -> {
             int idx = table.getSelectedRow();
             if (idx < 0) return;
-            createDelete.remove(idx);
+            Product product = group.products.get(idx);
+            storage.deleteProduct(product, group, idx);
             tableModel.removeRow(idx);
         });
         changeGroupsProducts.setText("Повернутися");

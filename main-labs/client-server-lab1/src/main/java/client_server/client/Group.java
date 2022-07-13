@@ -1,12 +1,16 @@
 package client_server.client;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 
-public class Group implements Serializable, CreateDelete {
+public class Group implements Serializable {
     public String name;
     public String description;
+    @JsonIgnore
     public ArrayList<Product> products;
+    public int id;
 
     public Group(String name, String description) {
         this.name = name;
@@ -14,19 +18,7 @@ public class Group implements Serializable, CreateDelete {
         products = new ArrayList<>();
     }
     public Group() {
-
-    }
-
-    @Override
-    // Adds a new product to the group
-    public void add(Object product) {
-        products.add((Product) product);
-    }
-
-    @Override
-    // Removes a product from the group
-    public void remove(int index) {
-        products.remove(index);
+        products = new ArrayList<>();
     }
 
     @Override

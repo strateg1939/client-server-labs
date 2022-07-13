@@ -3,6 +3,7 @@ package client_server.client;
 import java.io.Serializable;
 
 public class Product implements Serializable {
+    public int id;
     public String name;
     public String description;
     public String producer;
