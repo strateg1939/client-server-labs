@@ -31,11 +31,11 @@ public class ProductService {
             Statement st = connection.createStatement();
             String createTable = "CREATE TABLE IF NOT EXISTS products(" +
                     "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL," +
-                    "name TEXT NOT NULL," +
+                    "name varchar(256) NOT NULL," +
                     "groupId INT NOT NULL," +
                     "description TEXT NOT NULL," +
-                    "manufacturer TEXT NOT NULL," +
-                    "price REAL NOT NULL," +
+                    "manufacturer varchar(256) NOT NULL," +
+                    "price double NOT NULL," +
                     "amount INT NOT NULL," +
                     "FOREIGN KEY(groupId) REFERENCES groups(id) ON DELETE CASCADE)";
             st.execute(createTable);
@@ -48,6 +48,7 @@ public class ProductService {
         String sql = "INSERT INTO products (name, groupId, description, manufacturer, price, amount) VALUES (?,?,?,?,?,?)";
         String[] generatedColumns = {"ID"};
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql, generatedColumns)) {
+            if (nameExists(product.getName())) throw new DataIncorrectException("Name exists");
             preparedStatement.setString(1, product.getName());
             preparedStatement.setInt(2, product.getGroupId());
             preparedStatement.setString(3, product.getDescription());
@@ -60,7 +61,7 @@ public class ProductService {
             int id = rs.getInt(1);
             product.setId(id);
             return product;
-        } catch (Exception e) {
+        } catch (SQLException e) {
             e.printStackTrace();
             throw new DataAccessException(e.getMessage());
         }
@@ -147,7 +148,7 @@ public class ProductService {
             preparedStatement.setInt(5, product.getAmount());
             preparedStatement.setInt(6, id);
             preparedStatement.execute();
-        } catch (Exception e) {
+        } catch (SQLException e) {
             throw new DataAccessException(e.getMessage());
         }
         product.setId(id);
@@ -164,14 +165,12 @@ public class ProductService {
         }
     }
 
-    public boolean checkIfNameExists(String name) {
+    public boolean nameExists(String name) {
         String sql = "SELECT * FROM products WHERE name = ?";
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setString(1, name);
             ResultSet resultSet = preparedStatement.executeQuery();
-            boolean exists = resultSet.next();
-            resultSet.close();
-            return exists;
+            return resultSet.next();
         } catch (Exception e) {
             throw new DataAccessException(e.getMessage());
         }

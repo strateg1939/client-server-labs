@@ -1,5 +1,7 @@
 package client_server.client;
 
+import client_server.exceptions.ClientDataException;
+
 import javax.swing.*;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
@@ -111,15 +113,23 @@ public class Main extends JFrame {
                 String nameOfGroup = group.name;
                 if (column == 0) {
                     if (!sameName) {
-                        group.name = data;
-                        storage.updateGroup(group);
+                        try {
+                            storage.updateGroup(group);
+                            group.name = data;
+                        } catch (ClientDataException clientDataException) {
+                            JOptionPane.showMessageDialog(main, clientDataException.getMessage());
+                        }
                     } else {
                         JOptionPane.showMessageDialog(main, "Таке ім'я групи товарів вже існує!");
                         model.setValueAt(nameOfGroup, row, column);
                     }
                 } else {
-                    group.description = data;
-                    storage.updateGroup(group);
+                    try {
+                        storage.updateGroup(group);
+                        group.description = data;
+                    } catch (ClientDataException clientDataException) {
+                        JOptionPane.showMessageDialog(main, clientDataException.getMessage());
+                    }
                 }
                 model.addTableModelListener(this);
             }
@@ -148,10 +158,15 @@ public class Main extends JFrame {
                 }
 
                 if (!sameName) {
-                    storage.addGroup(group);
-                    tableModel.addRow(new String[]{
-                            group.name,
-                            group.description});
+                    try {
+                        storage.addGroup(group);
+                        tableModel.addRow(new String[]{
+                                group.name,
+                                group.description});
+                    } catch (ClientDataException clientDataException) {
+                        JOptionPane.showMessageDialog(main, clientDataException.getMessage());
+                    }
+
                 } else {
                     JOptionPane.showMessageDialog(main, "Таке ім'я групи товарів вже існує!");
                 }
@@ -162,8 +177,12 @@ public class Main extends JFrame {
         remove.addActionListener(e -> {
             int idx = table.getSelectedRow();
             if (idx < 0) return;
-            storage.deleteGroup(storage.getAllGroups().get(idx), idx);
-            tableModel.removeRow(idx);
+            try {
+                storage.deleteGroup(storage.getAllGroups().get(idx), idx);
+                tableModel.removeRow(idx);
+            } catch (ClientDataException clientDataException) {
+                JOptionPane.showMessageDialog(main, clientDataException.getMessage());
+            }
         });
         //go to the selected groups products
 
@@ -266,8 +285,12 @@ public class Main extends JFrame {
             int idx = table.getSelectedRow();
             if (idx < 0) return;
             Group selectedGroup = storage.getAllGroups().get(idx);
-            storage.loadProducts(selectedGroup);
-            getProductTable(selectedGroup);
+            try {
+                storage.loadProducts(selectedGroup);
+                getProductTable(selectedGroup);
+            } catch (ClientDataException clientDataException) {
+                JOptionPane.showMessageDialog(main, clientDataException.getMessage());
+            }
         });
 
 
@@ -370,7 +393,11 @@ public class Main extends JFrame {
                         else product.price = value;
                     }
                 }
-                storage.updateProduct(product);
+                try {
+                    storage.updateProduct(product);
+                } catch (ClientDataException clientDataException) {
+                    JOptionPane.showMessageDialog(main, clientDataException.getMessage());
+                }
                 model.addTableModelListener(this);
             }
         });
@@ -410,13 +437,18 @@ public class Main extends JFrame {
                     }
                 }
                 if (!sameName) {
-                    storage.addProduct(product, group);
-                    tableModel.addRow(new String[]{
-                            product.name,
-                            product.description,
-                            product.producer,
-                            amount.toString(),
-                            price.toString()});
+                    try {
+                        storage.addProduct(product, group);
+                        tableModel.addRow(new String[]{
+                                product.name,
+                                product.description,
+                                product.producer,
+                                amount.toString(),
+                                price.toString()});
+                    } catch (ClientDataException clientDataException) {
+                        JOptionPane.showMessageDialog(main, clientDataException.getMessage());
+                    }
+
                 } else {
                     JOptionPane.showMessageDialog(main, "Таке ім'я товару вже існує!");
                 }
@@ -427,8 +459,13 @@ public class Main extends JFrame {
             int idx = table.getSelectedRow();
             if (idx < 0) return;
             Product product = group.products.get(idx);
-            storage.deleteProduct(product, group, idx);
-            tableModel.removeRow(idx);
+            try {
+                storage.deleteProduct(product, group, idx);
+                tableModel.removeRow(idx);
+            } catch (ClientDataException clientDataException) {
+                JOptionPane.showMessageDialog(main, clientDataException.getMessage());
+            }
+
         });
         changeGroupsProducts.setText("Повернутися");
         changeGroupsProducts.addActionListener(e -> getAllGroups());
@@ -490,7 +527,11 @@ public class Main extends JFrame {
     public static void main(String[] args) {
         main = new Main();
         storage = new Storage();
-        storage.loadGroups();
+        try {
+            storage.loadGroups();
+        } catch (ClientDataException e) {
+            JOptionPane.showMessageDialog(main, e.getMessage());
+        }
         getAllGroups();
         /*
         if (statusCode != -1) {

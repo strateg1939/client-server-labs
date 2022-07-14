@@ -57,8 +57,8 @@ public class Server {
         server.createContext("/auth", this::rootHandler);
         try {
             addSSl();
-        }catch (Exception e) {
-            System.out.println("bad ssl");
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         server.start();
     }
@@ -67,13 +67,14 @@ public class Server {
         SSLContext sslContext = SSLContext.getInstance("TLS");
         char[] password = "password".toCharArray();
         KeyStore keyStore = KeyStore.getInstance("JKS");
-        FileInputStream stream = new FileInputStream("src/main/java/testkey.jks");
+        FileInputStream stream = new FileInputStream("testkey.jks");
         keyStore.load(stream, password);
         KeyManagerFactory keyManager = KeyManagerFactory.getInstance("SunX509");
         keyManager.init(keyStore, password);
         TrustManagerFactory trustManager = TrustManagerFactory.getInstance("SunX509");
         trustManager.init(keyStore);
         sslContext.init(keyManager.getKeyManagers(), trustManager.getTrustManagers(), null);
+
         server.setHttpsConfigurator(new HttpsConfigurator(sslContext) {
             public void configure(HttpsParameters params) {
                 try {
@@ -89,6 +90,7 @@ public class Server {
                 }
             }
         });
+
     }
 
     public void stop() {
@@ -129,6 +131,7 @@ public class Server {
     }
 
     private void loginHandler(HttpExchange exchange, Map<String, String> pathParams) throws IOException {
+        System.out.println("login");
         try (InputStream requestBody = exchange.getRequestBody()) {
             LoginPostDto loginPostDto = OBJECT_MAPPER.readValue(requestBody, LoginPostDto.class);
             User user = _userService.getByName(loginPostDto.getLogin());

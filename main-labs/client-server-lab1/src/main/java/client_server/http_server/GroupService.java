@@ -1,6 +1,7 @@
 package client_server.http_server;
 
 import client_server.exceptions.DataAccessException;
+import client_server.exceptions.DataIncorrectException;
 import client_server.models.ProductGroup;
 import java.sql.*;
 import java.util.ArrayList;
@@ -29,7 +30,7 @@ public class GroupService {
             Statement st = connection.createStatement();
             String createTable = "CREATE TABLE IF NOT EXISTS groups(" +
                     "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL," +
-                    "name TEXT NOT NULL," +
+                    "name varchar(256) NOT NULL," +
                     "description TEXT NOT NULL)";
             st.execute(createTable);
         } catch (SQLException e) {
@@ -41,6 +42,7 @@ public class GroupService {
         String sql = "INSERT INTO groups (name, description) VALUES (?,?)";
         String[] generatedColumns = {"ID"};
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql, generatedColumns)) {
+            if(nameExists(group.getName())) throw new DataIncorrectException("Name exists");
             preparedStatement.setString(1, group.getName());
             preparedStatement.setString(2, group.getDescription());
             preparedStatement.execute();
@@ -49,7 +51,7 @@ public class GroupService {
             int id = rs.getInt(1);
             group.setId(id);
             return group;
-        } catch (Exception e) {
+        } catch (SQLException e) {
             e.printStackTrace();
             throw new DataAccessException(e.getMessage());
         }
@@ -102,7 +104,7 @@ public class GroupService {
             preparedStatement.setString(2, group.getDescription());
             preparedStatement.setInt(3, id);
             preparedStatement.execute();
-        } catch (Exception e) {
+        } catch (SQLException e) {
             throw new DataAccessException(e.getMessage());
         }
         group.setId(id);
@@ -119,16 +121,13 @@ public class GroupService {
         }
     }
 
-    public boolean checkIfNameExists(String name) {
+    public boolean nameExists(String name) {
         String sql = "SELECT * FROM groups WHERE name = ?";
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setString(1, name);
             ResultSet resultSet = preparedStatement.executeQuery();
-            boolean exists = resultSet.next();
-            resultSet.close();
-            return exists;
+            return resultSet.next();
         } catch (Exception e) {
-            System.out.println(e.getMessage());
             throw new DataAccessException(e.getMessage());
         }
     }

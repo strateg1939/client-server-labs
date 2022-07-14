@@ -6,8 +6,13 @@ public class Response {
     public Response(String message) {
         this.message = message;
     }
+    public Response(){}
 
     public String getMessage() {
         return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
     }
 }
