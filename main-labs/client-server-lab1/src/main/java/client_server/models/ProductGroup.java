@@ -5,8 +5,6 @@ public class ProductGroup {
     private String name;
     private String description;
 
-    private double totalPrice;
-
     public ProductGroup() {
     }
 
@@ -16,12 +14,6 @@ public class ProductGroup {
         this.description = description;
     }
 
-    public ProductGroup(int id, String name, String description, double totalPrice) {
-        this.id = id;
-        this.name = name;
-        this.description = description;
-        this.totalPrice = totalPrice;
-    }
 
     public ProductGroup(String name, String description) {
         this.name = name;
@@ -50,13 +42,5 @@ public class ProductGroup {
 
     public void setDescription(String description) {
         this.description = description;
-    }
-
-    public double getTotalPrice() {
-        return totalPrice;
-    }
-
-    public void setTotalPrice(double totalPrice) {
-        this.totalPrice = totalPrice;
     }
 }

@@ -1,8 +1,12 @@
 package client_server.http_server;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
+import java.security.*;
+import java.security.cert.CertificateException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -11,14 +15,12 @@ import client_server.client.Group;
 import client_server.exceptions.DataAccessException;
 import client_server.exceptions.DataIncorrectException;
 import client_server.models.*;
+import com.sun.net.httpserver.*;
 import org.apache.commons.codec.digest.DigestUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sun.net.httpserver.Authenticator;
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpPrincipal;
-import com.sun.net.httpserver.HttpServer;
 
+import javax.net.ssl.*;
 
 
 public class Server {
@@ -30,8 +32,9 @@ public class Server {
     private final ProductService _productService = new ProductService("file.db");
     private final GroupService _groupService = new GroupService("file.db");
     private final List<Endpoint> apiEndpoints = new ArrayList<>();
+    private static final String ID_PARAM = "id";
 
-    private final HttpServer server;
+    private final HttpsServer server;
 
     public Server() throws IOException {
         try {
@@ -42,17 +45,50 @@ public class Server {
         }
         apiEndpoints.add(new Endpoint(Pattern.compile("\\S*/login"), this::loginHandler, (a, b) -> new HashMap<>()));
         apiEndpoints.add(new Endpoint(Pattern.compile("\\S*/product"), this::postProductHandler, (a, b) -> new HashMap<>()));
-        apiEndpoints.add(new Endpoint(Pattern.compile("\\S*/product/(\\d+)$"), this::getOrDeleteOrUpdateProductById, this::getProductParamId));
+        apiEndpoints.add(new Endpoint(Pattern.compile("\\S*/products-by-group/((\\d+)$)"), this::getProductByGroup, this::getParamId));
+        apiEndpoints.add(new Endpoint(Pattern.compile("\\S*/product/(\\d+)$"), this::getOrDeleteOrUpdateProductById, this::getParamId));
         apiEndpoints.add(new Endpoint(Pattern.compile("\\S*/group"), this::postGroupHandler, (a, b) -> new HashMap<>()));
-        apiEndpoints.add(new Endpoint(Pattern.compile("\\S*/group/(\\d+)$"), this::getOrDeleteOrUpdateGroupById, this::getProductParamId));
+        apiEndpoints.add(new Endpoint(Pattern.compile("\\S*/group/(\\d+)$"), this::getOrDeleteOrUpdateGroupById, this::getParamId));
 
 
-        this.server = HttpServer.create();
+        this.server = HttpsServer.create();
         server.bind(new InetSocketAddress(1337), 0);
-        server.createContext("/api", this::rootHandler);
-   //         .setAuthenticator(new MyAuthenticator());
+        server.createContext("/api", this::rootHandler).setAuthenticator(new MyAuthenticator());
         server.createContext("/auth", this::rootHandler);
+        try {
+            addSSl();
+        }catch (Exception e) {
+            System.out.println("bad ssl");
+        }
         server.start();
+    }
+
+    private void addSSl() throws NoSuchAlgorithmException, IOException, KeyStoreException, CertificateException, UnrecoverableKeyException, KeyManagementException {
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        char[] password = "password".toCharArray();
+        KeyStore keyStore = KeyStore.getInstance("JKS");
+        FileInputStream stream = new FileInputStream("src/main/java/testkey.jks");
+        keyStore.load(stream, password);
+        KeyManagerFactory keyManager = KeyManagerFactory.getInstance("SunX509");
+        keyManager.init(keyStore, password);
+        TrustManagerFactory trustManager = TrustManagerFactory.getInstance("SunX509");
+        trustManager.init(keyStore);
+        sslContext.init(keyManager.getKeyManagers(), trustManager.getTrustManagers(), null);
+        server.setHttpsConfigurator(new HttpsConfigurator(sslContext) {
+            public void configure(HttpsParameters params) {
+                try {
+                    SSLContext sslContext = getSSLContext();
+                    SSLEngine sslEngine = sslContext.createSSLEngine();
+                    params.setNeedClientAuth(false);
+                    params.setCipherSuites(sslEngine.getEnabledCipherSuites());
+                    params.setProtocols(sslEngine.getEnabledProtocols());
+                    SSLParameters sslParameters = sslContext.getSupportedSSLParameters();
+                    params.setSSLParameters(sslParameters);
+                } catch (Exception e) {
+                    System.out.println("Failed to create the HTTPS port");
+                }
+            }
+        });
     }
 
     public void stop() {
@@ -68,6 +104,27 @@ public class Server {
             endpoint.get().handler().handle(exchange);
         } else {
             handlerNoFound(exchange);
+        }
+    }
+
+    private void getProductByGroup(HttpExchange exchange, Map<String, String> pathParams) throws IOException {
+        try (InputStream requestBody = exchange.getRequestBody()) {
+            exchange.getResponseHeaders()
+                    .add("Content-Type", "application/json");
+            String method = exchange.getRequestMethod();
+            int id = Integer.parseInt(pathParams.get(ID_PARAM));
+            if (method.equals("GET")) {
+                List<Product> products = _productService.getByGroupId(id);
+                writeResponse(exchange, 200, products);
+            } else {
+                writeResponse(exchange, 404, new Response("Not appropriate command"));
+            }
+
+        } catch (DataAccessException e) {
+            writeResponse(exchange, 500, new Response("get products by group fail"));
+            e.printStackTrace();
+        } catch (DataIncorrectException e) {
+            writeResponse(exchange, 409, new Response(e.getMessage()));
         }
     }
 
@@ -95,19 +152,12 @@ public class Server {
         }
     }
 
-
-    private void getAllGroups(HttpExchange exchange, Map<String, String> pathParams) throws IOException {
-        exchange.getResponseHeaders().add("Content-Type", "application/json");
-        var list = new ArrayList<Group>();
-        list.add(new Group("test", "test"));
-        writeResponse(exchange, 200, list);
-    }
     private void getOrDeleteOrUpdateProductById(HttpExchange exchange, Map<String, String> pathParams) throws IOException {
         try (InputStream requestBody = exchange.getRequestBody()) {
             exchange.getResponseHeaders().add("Content-Type", "application/json");
             String method = exchange.getRequestMethod();
 
-            int productId = Integer.parseInt(pathParams.get("productId"));
+            int productId = Integer.parseInt(pathParams.get(ID_PARAM));
             Product product = _productService.getOneProduct(productId);
             if (method.equals("GET")) {
                 if (product != null) {
@@ -122,7 +172,7 @@ public class Server {
                 } else {
                     writeResponse(exchange, 404, new Response("No product with such id"));
                 }
-            } else if(method.equals("PUT")) {
+            } else if (method.equals("PUT")) {
                 Product productReceived = OBJECT_MAPPER.readValue(requestBody, Product.class);
                 if (product != null) {
                     String name = productReceived.getName();
@@ -175,7 +225,7 @@ public class Server {
             exchange.getResponseHeaders().add("Content-Type", "application/json");
             String method = exchange.getRequestMethod();
 
-            int groupId = Integer.parseInt(pathParams.get("productId"));
+            int groupId = Integer.parseInt(pathParams.get(ID_PARAM));
             ProductGroup group = _groupService.getOneGroup(groupId);
             if (method.equals("GET")) {
                 if (group != null) {
@@ -190,7 +240,7 @@ public class Server {
                 } else {
                     writeResponse(exchange, 404, new Response("No group with such id"));
                 }
-            } else if(method.equals("PUT")) {
+            } else if (method.equals("PUT")) {
                 ProductGroup productGroup = OBJECT_MAPPER.readValue(requestBody, ProductGroup.class);
                 if (group != null) {
                     String name = productGroup.getName();
@@ -222,18 +272,16 @@ public class Server {
     private void postProductHandler(HttpExchange exchange, Map<String, String> pathParams) throws IOException {
         try (InputStream requestBody = exchange.getRequestBody()) {
             exchange.getResponseHeaders()
-                .add("Content-Type", "application/json");
+                    .add("Content-Type", "application/json");
             String method = exchange.getRequestMethod();
 
             if (method.equals("POST")) {
                 System.out.println("post product");
                 Product product = OBJECT_MAPPER.readValue(requestBody, Product.class);
                 if (product != null) {
-                    if (product.getAmount() >= 0 && product.getPrice() > 0) {
-
-                        Product product1 = _productService.createProduct(product);
-                        writeResponse(exchange, 201, new Response(OBJECT_MAPPER.writeValueAsString(product1)));
-
+                    if (product.getAmount() >= 0 && product.getPrice() >= 0) {
+                        Product created = _productService.createProduct(product);
+                        writeResponse(exchange, 201, created);
                     } else {
                         System.out.println("incorrect");
                         writeResponse(exchange, 409, new Response("Wrong input"));
@@ -242,6 +290,9 @@ public class Server {
                     System.out.println("null");
                     writeResponse(exchange, 409, new Response("Wrong input"));
                 }
+            } else if (method.equals("GET")) {
+                List<Product> products = _productService.getAllProducts();
+                writeResponse(exchange, 200, products);
             } else {
                 writeResponse(exchange, 404, new Response("Not appropriate command"));
             }
@@ -253,9 +304,9 @@ public class Server {
         } catch (DataIncorrectException e) {
             System.out.println("fail");
             writeResponse(exchange, 409, new Response(e.getMessage()));
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             System.out.println("Major fail");
+            e.printStackTrace();
         }
     }
 
@@ -268,15 +319,14 @@ public class Server {
             if (method.equals("POST")) {
                 ProductGroup group = OBJECT_MAPPER.readValue(requestBody, ProductGroup.class);
                 if (group != null) {
-
-                        ProductGroup group1 = _groupService.createGroup(group);
-                        long id = group1.getId();
-                        writeResponse(exchange, 201, new Response("{ \"id\" : " + id + "}"));
-
-                        writeResponse(exchange, 409, new Response("Wrong input"));
+                    ProductGroup created = _groupService.createGroup(group);
+                    writeResponse(exchange, 200, created);
                 } else {
                     writeResponse(exchange, 409, new Response("Wrong input"));
                 }
+            } else if (method.equals("GET")) {
+                List<ProductGroup> productGroups = _groupService.getAllGroups();
+                writeResponse(exchange, 200, productGroups);
             } else {
                 writeResponse(exchange, 404, new Response("Not appropriate command"));
             }
@@ -289,16 +339,16 @@ public class Server {
         }
     }
 
-    private Map<String, String> getProductParamId(String uri, Pattern pattern) {
+    private Map<String, String> getParamId(String uri, Pattern pattern) {
         Matcher matcher = pattern.matcher(uri);
         matcher.find();
 
         return new HashMap<String, String>() {{
-            put("productId", matcher.group(1));
+            put(ID_PARAM, matcher.group(1));
         }};
     }
 
-     private void handlerNoFound(HttpExchange exchange) {
+    private void handlerNoFound(HttpExchange exchange) {
         try {
             exchange.sendResponseHeaders(404, 0);
             exchange.close();

@@ -33,7 +33,7 @@ public class GroupService {
                     "description TEXT NOT NULL)";
             st.execute(createTable);
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new DataAccessException(e.getMessage());
         }
     }
 
@@ -51,28 +51,25 @@ public class GroupService {
             return group;
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException(e);
+            throw new DataAccessException(e.getMessage());
         }
     }
 
     public List<ProductGroup> getAllGroups() {
         List<ProductGroup> groups = new ArrayList<>();
-        String sql = "SELECT g.id, g.name, g.description, " +
-                "(SELECT SUM(p.price * p.amount) FROM products p WHERE p.groupId = g.id) totalPrice " +
-                "FROM groups g";
+        String sql = "SELECT * FROM groups";
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             ResultSet resultSet = preparedStatement.executeQuery();
             while (resultSet.next()) {
                 groups.add(new ProductGroup(
-                        resultSet.getInt("id"),
-                        resultSet.getString("name"),
-                        resultSet.getString("description"),
-                        resultSet.getDouble("totalPrice")
+                    resultSet.getInt("id"),
+                    resultSet.getString("name"),
+                    resultSet.getString("description")
                 ));
             }
             resultSet.close();
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new DataAccessException(e.getMessage());
         }
         return groups;
     }
@@ -93,7 +90,7 @@ public class GroupService {
             resultSet.close();
         } catch (Exception e) {
             System.out.println(e);
-            throw new RuntimeException(e);
+            throw new DataAccessException(e.getMessage());
         }
         return result;
     }
@@ -106,7 +103,7 @@ public class GroupService {
             preparedStatement.setInt(3, id);
             preparedStatement.execute();
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new DataAccessException(e.getMessage());
         }
         group.setId(id);
         return group;
@@ -118,7 +115,7 @@ public class GroupService {
             preparedStatement.setInt(1, id);
             preparedStatement.execute();
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new DataAccessException(e.getMessage());
         }
     }
 
@@ -132,7 +129,7 @@ public class GroupService {
             return exists;
         } catch (Exception e) {
             System.out.println(e.getMessage());
-            throw new RuntimeException(e);
+            throw new DataAccessException(e.getMessage());
         }
     }
 }

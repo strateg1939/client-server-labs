@@ -1,9 +1,12 @@
 package client_server.client;
 
+import client_server.models.LoginPostDto;
+import client_server.models.LoginResponseDto;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -14,17 +17,31 @@ public class Storage {
     private static final String SERVER_URL = "http://localhost:1337/api/";
     private static final HttpClient httpClient = HttpClient.newHttpClient();
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final String userName = "admin";
+    private static final String password = "pass";
+    private static String token;
     /**
      * file name
      */
     public static final String groupFileName = "groups.txt";
 
     public Storage() {
+        try {
+            LoginPostDto loginPostDto = new LoginPostDto(userName, password);
+            String json = OBJECT_MAPPER.writeValueAsString(loginPostDto);
+            HttpRequest httpRequest = HttpRequest.newBuilder().uri(new URI("http://localhost:1337/auth/login")).POST(HttpRequest.BodyPublishers.ofString(json)).build();
+            HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+            LoginResponseDto responseDto = OBJECT_MAPPER.readValue(response.body(), LoginResponseDto.class);
+            token = responseDto.getToken();
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
     }
 
     public void loadGroups() {
         try {
-            HttpRequest httpRequest = HttpRequest.newBuilder().uri(new URI(SERVER_URL + "groups")).GET().build();
+            HttpRequest httpRequest = addAuthToken(HttpRequest.newBuilder().uri(new URI(SERVER_URL + "group")).GET());
             HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
             this.AllGroups = OBJECT_MAPPER.readValue(response.body(), new TypeReference<ArrayList<Group>>() {});
         } catch (Exception e) {
@@ -42,7 +59,17 @@ public class Storage {
             HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
             Group resultGroup = OBJECT_MAPPER.readValue(response.body(), Group.class);
             AllGroups.add(resultGroup);
-        }catch (Exception e) {
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void loadProducts(Group group) {
+        try {
+            HttpRequest httpRequest = HttpRequest.newBuilder().uri(new URI(SERVER_URL + "products-by-group/" + group.id)).GET().build();
+            HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+            group.products = OBJECT_MAPPER.readValue(response.body(), new TypeReference<ArrayList<Product>>() {});
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -107,6 +134,10 @@ public class Storage {
             e.printStackTrace();
             return false;
         }
+    }
+
+    private HttpRequest addAuthToken(HttpRequest.Builder builder) {
+        return builder.header("Authorization", token).build();
     }
 
 }

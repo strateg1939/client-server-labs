@@ -1,6 +1,7 @@
 package client_server.http_server;
 
 import client_server.exceptions.DataAccessException;
+import client_server.exceptions.DataIncorrectException;
 import client_server.models.Product;
 
 import java.sql.*;
@@ -39,7 +40,7 @@ public class ProductService {
                     "FOREIGN KEY(groupId) REFERENCES groups(id) ON DELETE CASCADE)";
             st.execute(createTable);
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new DataAccessException(e.getMessage());
         }
     }
 
@@ -61,7 +62,7 @@ public class ProductService {
             return product;
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException(e);
+            throw new DataAccessException(e.getMessage());
         }
     }
 
@@ -83,7 +84,7 @@ public class ProductService {
             }
             resultSet.close();
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new DataAccessException(e.getMessage());
         }
         return products;
     }
@@ -107,10 +108,33 @@ public class ProductService {
             }
             resultSet.close();
         } catch (Exception e) {
-            System.out.println(e);
-            throw new RuntimeException(e);
+            throw new DataAccessException(e.getMessage());
         }
         return result;
+    }
+
+    public List<Product> getByGroupId(int id) {
+        ArrayList<Product> products = new ArrayList<Product>();
+        String sql = "SELECT * FROM products WHERE groupId = ?";
+        try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+            preparedStatement.setInt(1, id);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            while (resultSet.next()) {
+                products.add(new Product(
+                        resultSet.getString("name"),
+                        resultSet.getInt("amount"),
+                        resultSet.getDouble("price"),
+                        resultSet.getString("description"),
+                        resultSet.getString("manufacturer"),
+                        resultSet.getInt("id"),
+                        resultSet.getInt("groupId")
+                ));
+            }
+            resultSet.close();
+        } catch (Exception e) {
+            throw new DataAccessException(e.getMessage());
+        }
+        return products;
     }
 
     public Product updateProduct(int id, Product product) {
@@ -124,7 +148,7 @@ public class ProductService {
             preparedStatement.setInt(6, id);
             preparedStatement.execute();
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new DataAccessException(e.getMessage());
         }
         product.setId(id);
         return product;
@@ -136,7 +160,7 @@ public class ProductService {
             preparedStatement.setInt(1, id);
             preparedStatement.execute();
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new DataAccessException(e.getMessage());
         }
     }
 
@@ -149,8 +173,7 @@ public class ProductService {
             resultSet.close();
             return exists;
         } catch (Exception e) {
-            System.out.println(e);
-            throw new RuntimeException(e);
+            throw new DataAccessException(e.getMessage());
         }
     }
 }

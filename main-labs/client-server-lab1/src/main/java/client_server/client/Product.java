@@ -1,5 +1,7 @@
 package client_server.client;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.io.Serializable;
 
 public class Product implements Serializable {
@@ -9,7 +11,9 @@ public class Product implements Serializable {
     public String producer;
     public int amount;
     public double price;
+    @JsonIgnore
     public Group group;
+    public int groupId;
 
 
     public Product(String name,
@@ -24,6 +28,7 @@ public class Product implements Serializable {
         this.price = price;
         this.producer = producer;
         this.group = group;
+        this.groupId = group.id;
     }
 
     public Product() {

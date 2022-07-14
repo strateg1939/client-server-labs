@@ -265,7 +265,9 @@ public class Main extends JFrame {
         changeGroupsProducts.addActionListener(e -> {
             int idx = table.getSelectedRow();
             if (idx < 0) return;
-            getProductTable(storage.getAllGroups().get(idx));
+            Group selectedGroup = storage.getAllGroups().get(idx);
+            storage.loadProducts(selectedGroup);
+            getProductTable(selectedGroup);
         });
 
 

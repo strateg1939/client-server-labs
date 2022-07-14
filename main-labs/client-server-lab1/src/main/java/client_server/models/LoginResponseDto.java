@@ -9,6 +9,7 @@ package client_server.models;
             this.token = token;
             this.login = login;
         }
+        public LoginResponseDto(){}
 
         public String getToken() {
             return token;
